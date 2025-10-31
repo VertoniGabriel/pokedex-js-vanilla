@@ -21,10 +21,25 @@ const typeColors = {
   Fairy: "#D685AD",
 };
 let currentOffset = 0;
+let allPokemonNames = [];
 
 const pokedexButton = document.querySelector(".button.pokedex");
 const searchInput = document.querySelector("#pesquisa");
 const searchButton = document.querySelector(".ph-magnifying-glass");
+
+async function fetchAllPokemonNames() {
+  try {
+    const response = await fetch(
+      `https://pokeapi.co/api/v2/pokemon?limit=10000`
+    );
+    const data = await response.json();
+
+    allPokemonNames = data.results;
+    console.log("Lista de Pokémon carregada:", allPokemonNames.length);
+  } catch (error) {
+    console.error("Erro ao buscar todos os nomes:", error);
+  }
+}
 
 async function fetchPokemonList(offset = 0) {
   pokemonContainer.innerHTML = "<h2>Carregando Pokémon...</h2>";
@@ -116,27 +131,41 @@ prevButton.addEventListener("click", () => {
 
 async function handleSearch() {
   console.log("Buscando...");
-  const pokemonName = searchInput.value;
 
-  if (!pokemonName) {
+  const inputText = searchInput.value.toLowerCase();
+
+  if (!inputText) {
     console.log("Campo de busca vazio.");
     return;
   }
 
-  const searchURL = `https://pokeapi.co/api/v2/pokemon/${pokemonName}`;
+  const suggestions = allPokemonNames.filter((pokemon) => {
+    return pokemon.name.startsWith(inputText);
+  });
+
+  let pokemonToSearch;
+
+  if (suggestions.length === 0) {
+    pokemonContainer.innerHTML = `<p class="erro-busca">Pokémon não encontrado.</p>`;
+    return;
+  } else {
+    pokemonToSearch = suggestions[0].name;
+    console.log(
+      `Termo "${inputText}" encontrado. Buscando por "${pokemonToSearch}".`
+    );
+  }
+
+  const searchURL = `https://pokeapi.co/api/v2/pokemon/${pokemonToSearch}`; // Usa o nome encontrado!
 
   try {
     const response = await fetch(searchURL);
 
     if (!response.ok) {
-      if (response.status === 404) {
-        pokemonContainer.innerHTML = `<p class="erro-busca">Pokémon não encontrado. Tente novamente.</p>`;
-      } else {
-        pokemonContainer.innerHTML = `<p class="erro-busca">Ocorreu um erro na busca.</p>`;
-      }
+      pokemonContainer.innerHTML = `<p class="erro-busca">Ocorreu um erro na busca.</p>`;
       console.error("Erro na busca:", response.status);
       return;
     }
+
     const pokemonData = await response.json();
 
     pokemonContainer.innerHTML = "";
@@ -146,6 +175,7 @@ async function handleSearch() {
     pokemonContainer.innerHTML = `<p class="erro-busca">Um erro inesperado ocorreu.</p>`;
   }
 }
+
 searchButton.addEventListener("click", () => {
   handleSearch();
 });
@@ -156,8 +186,13 @@ searchInput.addEventListener("keydown", (event) => {
   }
 });
 
+searchInput.addEventListener("input", () => {
+  showSuggestions();
+});
+
 pokedexButton.addEventListener("click", () => {
   fetchPokemonList(0);
 });
 
+fetchAllPokemonNames();
 fetchPokemonList();
