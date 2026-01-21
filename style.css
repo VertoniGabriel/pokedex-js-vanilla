@@ -80,6 +80,7 @@ body {
   background-color: #f2f2f7;
   border: none;
   border-style: none;
+  width: 50%;
 }
 
 #pesquisa:focus {
